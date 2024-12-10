@@ -7,11 +7,17 @@ import (
 	"take_home_golang/etl"
 )
 
+const (
+	DefaultJson string = "in.json" // default json file if you don't give one
+	DefaultCsv  string = "out.csv" // default csv file to be automatically created
+)
+
 func main() {
-	src := flag.String("src", "", "Set .json filename")
-	dest := flag.String("dest", "", "Set .csv filename")
+	src := flag.String("src", DefaultJson, "Set .json filename")
+	dest := flag.String("dest", DefaultCsv, "Set .csv filename")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [-src] [source-file] [-dest] [dest-file]\n", os.Args[0])
+		flag.PrintDefaults()
 	}
 	flag.Parse()
 

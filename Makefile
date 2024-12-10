@@ -1,8 +1,9 @@
 SRC=main.go
 BIN=main
+TEST=etl
 
 test:
-	go test ./...
+	go test -v ./$(TEST)/...
 
 build:
 	GOARCH=amd64 GOOS=darwin go build -o bin/$(BIN)-darwin $(SRC)
@@ -11,9 +12,9 @@ build:
 
 clean:
 	go clean
-	rm $(BIN)-darwin
-	rm $(BIN)-linux
-	rm $(BIN)-windows
+	rm -rf bin/$(BIN)-darwin
+	rm -rf bin/$(BIN)-linux
+	rm -rf bin/$(BIN)-windows
 
 dep:
 	go mod download

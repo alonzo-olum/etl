@@ -14,8 +14,8 @@ type subOrganizationOf struct {
 }
 
 type publisher struct {
-	Name              *string            `json:"name"`              // default nil reference
-	SubOrganizationOf *subOrganizationOf `json:"subOrganizationOf"` // default nil reference
+	Name              *string           `json:"name"`              // default nil reference
+	SubOrganizationOf subOrganizationOf `json:"subOrganizationOf"` // default nil reference
 }
 
 type contactPoint struct {
@@ -25,9 +25,9 @@ type contactPoint struct {
 type document struct {
 	Modified *string `json:"modified"` // default nil reference
 
-	Publisher *publisher    `json:"publisher"`    // default nil reference
-	Contact   *contactPoint `json:"contactPoint"` // default nil reference
-	Keyword   []string      `json:"keyword"`
+	Publisher publisher    `json:"publisher"`    // default nil reference
+	Contact   contactPoint `json:"contactPoint"` // default nil reference
+	Keyword   []string     `json:"keyword"`      // array is a reference type
 }
 
 type csvData struct {
@@ -38,6 +38,14 @@ type csvData struct {
 	Keyword        string `csv:"keyword"`
 }
 
+// for nil references replace with empty value
+func validate(field *string) string {
+	if field == nil {
+		return ""
+	}
+	return *field
+}
+
 // method unmarshalling document data, single ownership of pipeline(channel)
 // 'job' is ReadOnly Pipeline ensuring immutability
 var extract = func(decoder *json.Decoder) <-chan document {
@@ -45,6 +53,9 @@ var extract = func(decoder *json.Decoder) <-chan document {
 	go func() {
 		defer close(jobs)
 		var doc document
+		if _, err := decoder.Token(); err != nil {
+			panic(err)
+		}
 		for decoder.More() {
 			if err := decoder.Decode(&doc); err == nil {
 				jobs <- doc
@@ -100,14 +111,14 @@ var load = func(results <-chan []csvData, et *ETL) {
 }
 
 var mapper = func(docData document) []csvData {
-	bucketSize := len(docData.Keyword)
-	accumulator := make([]csvData, bucketSize)
+	accumulator := make([]csvData, 0)
 	for _, keyword := range docData.Keyword {
+
 		accumulator = append(accumulator, csvData{
-			Modified:       *docData.Modified,
-			PubName:        *docData.Publisher.Name,
-			PubSubOrgName:  *docData.Publisher.Name,
-			ContactPointFn: *docData.Contact.Fn,
+			Modified:       validate(docData.Modified),
+			PubName:        validate(docData.Publisher.Name),
+			PubSubOrgName:  validate(docData.Publisher.SubOrganizationOf.Name),
+			ContactPointFn: validate(docData.Contact.Fn),
 			Keyword:        keyword,
 		})
 	}
