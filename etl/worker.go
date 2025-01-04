@@ -1,6 +1,7 @@
 package etl
 
 import (
+	"encoding/csv"
 	"encoding/json"
 )
 
@@ -31,12 +32,14 @@ type document struct {
 }
 
 type csvData struct {
-	Modified       string `csv:"modified"`
-	PubName        string `csv:"publisher.name"`
-	PubSubOrgName  string `csv:"publisher.subOrganizationOf.name"`
-	ContactPointFn string `csv:"contactPoint.fn"`
-	Keyword        string `csv:"keyword"`
+	Modified       string
+	PubName        string
+	PubSubOrgName  string
+	ContactPointFn string
+	Keyword        string
 }
+
+type accumulator []csvData
 
 // for nil references replace with empty value
 func validate(field *string) string {
@@ -67,8 +70,8 @@ var extract = func(decoder *json.Decoder) <-chan document {
 
 // single ownership of pipeline(channel)
 // receive from 'job' and transform to csv data
-var transform = func(results <-chan document) <-chan []csvData {
-	jobs := make(chan []csvData, ChunkSize)
+var transform = func(results <-chan document) <-chan accumulator {
+	jobs := make(chan accumulator, ChunkSize)
 	go func() {
 		defer close(jobs)
 		for result := range results {
@@ -102,19 +105,19 @@ i.e. keywords = ["key1","key2","key3"] slice is:
 		...
 	]
 */
-var load = func(results <-chan []csvData, et *ETL) {
+var load = func(results <-chan accumulator, writer *csv.Writer) {
 	for result := range results {
-		if err := writeCsv(et.out, result); err != nil {
+		if err := writeCsv(writer, result); err != nil {
 			panic(err)
 		}
 	}
 }
 
 var mapper = func(docData document) []csvData {
-	accumulator := make([]csvData, 0)
+	_accumulator := make(accumulator, 0)
 	for _, keyword := range docData.Keyword {
 
-		accumulator = append(accumulator, csvData{
+		_accumulator = append(_accumulator, csvData{
 			Modified:       validate(docData.Modified),
 			PubName:        validate(docData.Publisher.Name),
 			PubSubOrgName:  validate(docData.Publisher.SubOrganizationOf.Name),
@@ -122,5 +125,5 @@ var mapper = func(docData document) []csvData {
 			Keyword:        keyword,
 		})
 	}
-	return accumulator
+	return _accumulator
 }

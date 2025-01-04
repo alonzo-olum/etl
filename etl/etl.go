@@ -1,6 +1,7 @@
 package etl
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"io"
 )
@@ -26,9 +27,22 @@ func NewEtl(reader io.Reader, writer io.Writer) *ETL {
 	}
 }
 
-func (et *ETL) Process() {
+func (et *ETL) Writer() *csv.Writer {
+	return csv.NewWriter(et.out)
+}
+
+func (et *ETL) Process(writer *csv.Writer) {
 	decoder := json.NewDecoder(et.in)
 	doc := extract(decoder)
 	result := transform(doc)
-	load(result, et)
+	load(result, writer)
+}
+
+type headers []string
+
+func (et *ETL) WriteHeaders(writer *csv.Writer) {
+	var data = headers{"modified", "publisher.name", "publisher.subOrganizationOf.name", "contactPoint.fn", "keyword"}
+	if err := writeCsv(writer, data); err != nil {
+		panic(err)
+	}
 }
