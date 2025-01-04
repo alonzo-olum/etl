@@ -36,10 +36,11 @@ func main() {
 	defer out.Close()
 
 	etl := etl.NewEtl(in, out)
-
+	// definition of writer once
 	csvWriter := etl.Writer()
 	defer csvWriter.Flush()
-
+	// write headers first
 	etl.WriteHeaders(csvWriter)
+	// Process and Write remaining rows
 	etl.Process(csvWriter)
 }
