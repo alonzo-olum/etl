@@ -26,14 +26,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer in.Close()
+	// Fix bug incase file Close throws an exception
+	defer closeResourceHandle(in)
+
 	// open .csv as write only, create if does not exist and overwrite if it does
 	out, err := os.OpenFile(*dest, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
-
 	if err != nil {
 		panic(err)
 	}
-	defer out.Close()
+	// Fix bug incase file Close throws an exception
+	defer closeResourceHandle(out)
 
 	etl := etl.NewEtl(in, out)
 	// definition of writer once
@@ -43,4 +45,10 @@ func main() {
 	etl.WriteHeaders(csvWriter)
 	// Process and Write remaining rows
 	etl.Process(csvWriter)
+}
+
+func closeResourceHandle(f *os.File) {
+	if err := f.Close(); err != nil {
+		fmt.Println(err)
+	}
 }
