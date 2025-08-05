@@ -9,7 +9,7 @@ import (
 func writeCsv(writer *csv.Writer, data interface{}) error {
 	switch t := data.(type) {
 	case headers:
-		write(writer, t)
+		write(t, writer)
 	case accumulator:
 		marshallAndWrite(t, writer)
 	default:
@@ -25,10 +25,10 @@ func marshallAndWrite(acc accumulator, writer *csv.Writer) {
 		for idx := range fields {
 			rows = append(rows, data.Field(idx).String())
 		}
-		write(writer, rows)
+		write(rows, writer)
 	}
 }
 
-func write(writer *csv.Writer, data []string) {
+func write(data []string, writer *csv.Writer) {
 	writer.Write(data)
 }
